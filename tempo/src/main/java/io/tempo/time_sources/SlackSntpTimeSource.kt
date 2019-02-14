@@ -37,15 +37,18 @@ import java.net.InetAddress
  * @param[maxRoundTripMs] The maximum allowed round trip time in milliseconds.
  * @param[timeoutMs] The maximum time allowed per each query, in milliseconds.
  */
-class SlackSntpTimeSource(val id: String = "default-slack-sntp",
+class SlackSntpTimeSource(
+    val id: String = "default-slack-sntp",
     private val priority: Int = 10,
     private val ntpPool: String = "time.google.com",
     private val maxRoundTripMs: Int = 1_000,
-    private val timeoutMs: Int = 10_000
+    private val timeoutMs: Int = 10_000,
+    private val funCallbackSuccess: ((time: Long) -> Unit)? = null,
+    private val funCallbackError: ((throwable: Throwable) -> Unit)? = null
 ) : TimeSource {
 
-    class AllRequestsFailure(errorMsg: String, cause: Throwable?)
-        : RuntimeException(errorMsg, cause)
+    class AllRequestsFailure(errorMsg: String, cause: Throwable?) :
+        RuntimeException(errorMsg, cause)
 
     override fun config() = TimeSourceConfig(id = id, priority = priority)
 
@@ -86,11 +89,16 @@ class SlackSntpTimeSource(val id: String = "default-slack-sntp",
                 } else {
                     // If all fail, throw 'AllRequestsFailure' exception.
                     val failures = results.mapNotNull { it as? Result.Failure }
-                    val msgs = failures.joinToString("; ", prefix = "[", postfix = "]") { it.errorMsg }
+                    val msgs =
+                        failures.joinToString("; ", prefix = "[", postfix = "]") { it.errorMsg }
                     val errorMsg = "All NTP requests failed: $msgs"
                     val cause = failures.firstOrNull()?.error
                     throw AllRequestsFailure(errorMsg, cause)
                 }
+            }.doOnSuccess {
+                funCallbackSuccess?.invoke(it)
+            }.doOnError {
+                funCallbackError?.invoke(it)
             }
 
     private fun turnSlowRequestsIntoFailure(rawResults: List<Result>): List<Result> =

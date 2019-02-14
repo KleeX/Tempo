@@ -35,7 +35,9 @@ import io.tempo.TimeSourceConfig
 class AndroidGPSTimeSource(
     val context: Context,
     val id: String = "tempo-default-android-gps",
-    private val priority: Int = 5
+    private val priority: Int = 5,
+    private val funCallbackSuccess: ((time: Long) -> Unit)? = null,
+    private val funCallbackError: ((throwable: Throwable) -> Unit)? = null
 ) : TimeSource {
 
     class PermissionNotSet : RuntimeException("We don't have permission to access the GPS.")
@@ -87,5 +89,10 @@ class AndroidGPSTimeSource(
             .map { it.time }
             .take(1)
             .singleOrError()
+            .doOnSuccess {
+                funCallbackSuccess?.invoke(it)
+            }.doOnError {
+                funCallbackError?.invoke(it)
+            }
     }
 }
