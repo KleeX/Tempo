@@ -21,18 +21,6 @@ import io.reactivex.schedulers.Schedulers
 import io.tempo.TimeSource
 import io.tempo.TimeSourceConfig
 
-/**
- * A [TimeSource] implementation using a more forgiving SNTP algorithm. It queries the [ntpPool]
- * five times concurrently, then, removes all failures and queries where the round trip took more
- * than [maxRoundTripMs]. If one or more queries succeeds, we take the one with the median round
- * trip time and return it.
- *
- * @param[id] The unique time source id.
- * @param[priority] The time source priority.
- * @param[ntpPool] The address of the NTP pool.
- * @param[maxRoundTripMs] The maximum allowed round trip time in milliseconds.
- * @param[timeoutMs] The maximum time allowed per each query, in milliseconds.
- */
 class LambdaTimeSource(
     private val id: String = "default-lambda-call",
     private val priority: Int = 10,
